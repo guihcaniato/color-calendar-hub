@@ -1,13 +1,33 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { CalendarHeader } from "./CalendarHeader";
 import { CalendarFilters } from "./CalendarFilters";
 import { MonthView } from "./MonthView";
 import { YearView } from "./YearView";
 import { EventModal } from "./EventModal";
 import { ModuleLegend } from "./ModuleLegend";
-import { calendarEvents, CalendarEvent, MODULOS, CATEGORIAS } from "@/data/calendarData";
+import { CsvUploader } from "./CsvUploader";
+import { calendarEvents as defaultEvents, CalendarEvent, MODULOS, CATEGORIAS } from "@/data/calendarData";
+
+const loadEventsFromStorage = (): CalendarEvent[] | null => {
+  const stored = localStorage.getItem('calendarEvents');
+  if (!stored) return null;
+  
+  try {
+    const parsed = JSON.parse(stored);
+    return parsed.map((e: any) => ({
+      ...e,
+      dataInicio: e.dataInicio ? new Date(e.dataInicio) : null,
+      dataFim: e.dataFim ? new Date(e.dataFim) : null
+    }));
+  } catch {
+    return null;
+  }
+};
 
 export const Calendar = () => {
+  const [events, setEvents] = useState<CalendarEvent[]>(() => {
+    return loadEventsFromStorage() || defaultEvents;
+  });
   const [currentDate, setCurrentDate] = useState(new Date(2026, 0, 1));
   const [viewMode, setViewMode] = useState<'year' | 'month'>('year');
   const [selectedModulos, setSelectedModulos] = useState<string[]>([...MODULOS]);
@@ -15,12 +35,33 @@ export const Calendar = () => {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Get unique modules and categories from current events
+  const availableModulos = useMemo(() => {
+    const modulos = [...new Set(events.map(e => e.modulo))].sort();
+    return modulos;
+  }, [events]);
+
+  const availableCategorias = useMemo(() => {
+    const categorias = [...new Set(events.map(e => e.categoria))].sort();
+    return categorias;
+  }, [events]);
+
+  // Update selected filters when events change
+  useEffect(() => {
+    setSelectedModulos(availableModulos);
+    setSelectedCategorias(availableCategorias);
+  }, [availableModulos, availableCategorias]);
+
   const filteredEvents = useMemo(() => {
-    return calendarEvents.filter(event => 
+    return events.filter(event => 
       selectedModulos.includes(event.modulo) &&
       selectedCategorias.includes(event.categoria)
     );
-  }, [selectedModulos, selectedCategorias]);
+  }, [events, selectedModulos, selectedCategorias]);
+
+  const handleDataLoad = (newEvents: CalendarEvent[]) => {
+    setEvents(newEvents);
+  };
 
   const handlePrevious = () => {
     if (viewMode === 'year') {
@@ -75,14 +116,17 @@ export const Calendar = () => {
           <h1 className="text-4xl font-bold text-foreground mb-2">
             Calendário Acadêmico
           </h1>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-muted-foreground text-lg mb-4">
             Graduação EAD - Cronograma de Atividades
           </p>
+          <CsvUploader onDataLoad={handleDataLoad} currentEvents={events} />
         </header>
 
         <CalendarFilters
           selectedModulos={selectedModulos}
           selectedCategorias={selectedCategorias}
+          availableModulos={availableModulos}
+          availableCategorias={availableCategorias}
           onModuloToggle={handleModuloToggle}
           onCategoriaToggle={handleCategoriaToggle}
         />

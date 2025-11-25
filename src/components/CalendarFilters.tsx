@@ -1,17 +1,30 @@
 import { Badge } from "@/components/ui/badge";
-import { MODULOS, CATEGORIAS, MODULE_COLORS } from "@/data/calendarData";
+import { MODULE_COLORS } from "@/data/calendarData";
 import { cn } from "@/lib/utils";
 
 interface CalendarFiltersProps {
   selectedModulos: string[];
   selectedCategorias: string[];
+  availableModulos: string[];
+  availableCategorias: string[];
   onModuloToggle: (modulo: string) => void;
   onCategoriaToggle: (categoria: string) => void;
 }
 
+const getModuleColor = (modulo: string) => {
+  return MODULE_COLORS[modulo] || { 
+    bg: 'bg-primary', 
+    text: 'text-primary', 
+    border: 'border-primary', 
+    light: 'bg-primary/20' 
+  };
+};
+
 export const CalendarFilters = ({
   selectedModulos,
   selectedCategorias,
+  availableModulos,
+  availableCategorias,
   onModuloToggle,
   onCategoriaToggle
 }: CalendarFiltersProps) => {
@@ -22,9 +35,9 @@ export const CalendarFilters = ({
           Módulos
         </h3>
         <div className="flex flex-wrap gap-2">
-          {MODULOS.map((modulo) => {
+          {availableModulos.map((modulo) => {
             const isSelected = selectedModulos.includes(modulo);
-            const colors = MODULE_COLORS[modulo];
+            const colors = getModuleColor(modulo);
             return (
               <button
                 key={modulo}
@@ -49,7 +62,7 @@ export const CalendarFilters = ({
           Categorias
         </h3>
         <div className="flex flex-wrap gap-2">
-          {CATEGORIAS.map((categoria) => {
+          {availableCategorias.map((categoria) => {
             const isSelected = selectedCategorias.includes(categoria);
             return (
               <Badge
